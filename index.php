@@ -5,6 +5,7 @@
  */
 
   //includes
+  require_once("inc/headers.php");
   require_once("api.php");
 
   // get request method 
