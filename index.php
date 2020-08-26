@@ -32,10 +32,8 @@
     //Check request method 
     switch ($reqMethod) { 
       case 'GET':
-
-        var_dump("Metodo GET");
+        // var_dump("Metodo GET");
         $routesApi->get();
-          
       break;
 
 
@@ -62,6 +60,7 @@
     } # end switch
 
   } # end if($URL != "index.php")
-
+else
+  echo "SOLO AL INDEX -> HTML_DOC";
 
   ?>
