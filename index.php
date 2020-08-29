@@ -5,18 +5,24 @@
  */
 
   //includes
-  require_once("inc/headers.php");
-  require_once("api.php");
+  require_once "inc/headers.php";
+  require_once "inc/helpers.php";
+  require_once "api.php";
+
+  // foreach ($_SERVER as $key => $value) {
+  //   echo "<br> $key :   " . $value;
+  // };
 
   // get request method 
   $reqMethod = $_SERVER["REQUEST_METHOD"];
 
+  define("http_host", $_SERVER["HTTP_HOST"]);
+  define("php_self", $_SERVER["PHP_SELF"]);
+  define("protocol", $_SERVER["REQUEST_SCHEME"]);
 
   //validate the URL
   if(!isset($_GET['url'])){
-    http_response_code(400);
-    echo json_encode(['code' => 400, 'msg' => 'Bad request']);
-    die();
+    notFound();
   }
 
 
@@ -27,12 +33,11 @@
   $routesApi = new Api($URL,$reqMethod);
 
   //Check URL Format
-  if($URL != "index.php"){
+  if($URL != "index.php" && preg_match("/(public\S)+(img+[0-9])|(public\Z)|(img)/", $URL)==0){
 
     //Check request method 
     switch ($reqMethod) { 
       case 'GET':
-        // var_dump("Metodo GET");
         $routesApi->get();
       break;
 
@@ -42,12 +47,13 @@
         $routesApi->post();
       break;
 
-
       case 'PUT':
-        $body = file_get_contents("php://input");
         var_dump("Metodo PUT");
+        echo "Create";
+            var_dump($_FILES["src"]);
+            echo "<br>";
+            var_dump($_GET["img"]);
       break;
-
 
       case 'DELETE':
         var_dump("Metodo DELETE");
@@ -60,7 +66,10 @@
     } # end switch
 
   } # end if($URL != "index.php")
-else
+  elseif($URL == "public" || preg_match("/(public\S)+(img+[0-9])|(public\Z)|(img)/", $URL)==1)
+    // echo "<img src='./public/img/1.jpg'>";
+    header("Location: public/img/1.jpg");
+  else
   echo "SOLO AL INDEX -> HTML_DOC";
 
   ?>

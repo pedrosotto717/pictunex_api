@@ -1,99 +1,160 @@
 <?php 
 
-require_once "./inc/class/connection.class.php";
+require_once "./inc/class/images.class.php";
+require_once "./inc/helpers.php";
 
 /**
- * Routes 
+ * Class Api
+ * * Routes 
  */
 class Api {
 	
 	private $URL;
 	private $REQUEST_METHOD;
 	private $userAdmin;
-	private $img;
-	private $DB;
+	private $imgs;
 
 	function __construct($url, $rq_method) {
 		$this->URL = $url;
 		$this->REQUEST_METHOD = $rq_method;
-
-		$this->DB = new Connection("pictunex");
+		$this->imgs = new Images($this->REQUEST_METHOD);
 	}
 
 
 	public function get() {
+		##Leyends 
+			#$params[0] -> images
+			#$params[1] -> id OR category
+			#$params[2] -> Category_to_search
 		
-		if(preg_match('/images/', $this->URL)){ //Check request to /images
+		$params = preg_split('/[\/]/', $this->URL); //separate URL parameters
+		
+		if( $params[0]=="images" ){ //Check request to /images
 			
 			//Check URL parameters 
-			// echo "SOLICITUD CORRECTA";
+			if( preg_match('/[\/]/', $this->URL) ){ //if exist Parameters
 
-			if( preg_match('/[\/]/', $this->URL) ){
+				if(preg_match('/[0-9]+\Z/', $params[1])){ //Check Request by id
 
-				$params = preg_split('/[\/]/', $this->URL);
+					$finalResult = $this->imgs->getByID($params[1]);
 
-				if(preg_match('/[0-9]/', $this->URL)){
+					if($finalResult == false){
+						notFound();
+					}
+					else echo json_encode( $finalResult );
 
-					echo "<br>PETICION POR ID: ";
-					echo $params[1];
+				}elseif ($params[1] == 'category'){ //Check Request by Categories
 
-				}elseif ($params[1] == 'category'){
+					if(isset($params[2])){ //Check if exist some Categories
 
-					echo "<br>PETICION POR Categoria";
-					//hago el query a la base de datos de la tabla categorias
+						$finalResult = $this->imgs->getByCategory( $params[2] );
 
-				}elseif ($params[1] == 'search' && !empty($_GET['q']) ) {
+						if($finalResult == false){
+							notFound();
+						}else echo json_encode( $finalResult );
+
+					}else{
+
+						$finalResult = $this->imgs->getCategories();
+
+						if($finalResult == false){
+							notFound();
+						}else echo json_encode( $finalResult );
+
+					}
+
+				}elseif ($params[1] == 'search' && !empty($_GET['q']) ) { //Check Request For Search
 					
-					echo "<br>PETICION POR Busqueda";
-					echo $_GET['q'];
+					$finalResult = $this->imgs->search($_GET['q']);
+					
+					if($finalResult == false){
+						notFound();
+					}else echo json_encode( $finalResult );
 
 				}else{
-					echo json_encode(['code' => 404, 'msg' => 'Resource Not Found']);
-				    http_response_code(404);
+					notFound();
 				}
 
 
-			}else{
-				//All Images
-				echo json_encode( $this->DB->queryAll('images') );
+			}else{//All Images
+
+				$finalResult = $this->imgs->getAll();
+
+				if($finalResult == false){
+					notFound();
+				}else echo json_encode( $finalResult );
 			}
 
-		}#end  if(preg_match('/[images]/', $this->URL))
+		}#end  if( $params[0]=="images" )
 		else{
-
-			echo "INCORRECTA";
-			var_dump($this->URL);
+			notFound();
 		}
 	}# end method get()
 
 
 
 	public function post() {
+		##Leyends 
+			#$params[0] -> images
+			#$params[1] -> id
 
 		//Check URL parameters 
-        if(preg_match('/[\/]/', $this->URL)){
-	        $params = preg_split('/[\/]/', $this->URL);
-	        echo "images => id: ";
-	    	echo $params[1]; 
-        }else{
-         	echo "NO Pasaron Parametros";
-        }
+		$params = preg_split('/[\/]/', $this->URL); //separate URL parameters
+		
+		if(isset($_POST["action"])){
 
+			if( $params[0]=="images" ){
+
+				if(!isset($params[1])){ //if not defined Insert new Image
+
+					#codigo para insertar una imagen
+					if($_POST["action"]=="create"){
+						#INSERT INTO 
+						if(	isset($_FILES["src"] ) 
+							&& isset($_POST["name"])
+							&& isset($_POST["keywords"])
+							&& isset($_POST["categories"]) ){
+								
+								$finalResult = $this->imgs->insertImage(
+									$_POST["name"],
+								    $_POST["keywords"],
+								    $_POST["categories"],
+								    $_FILES["src"]);
+								
+								if($finalResult == false){
+									notFound(); //error
+								}elseif ($finalResult == null) {
+									errorServer();
+								}else
+								created();
+						}else badRed();
+
+					} # end if($_POST["action"]=="create")
+					else Unauthorized();
+
+				} # end if(!isset($params[1]))
+				elseif( preg_match('/[\/]/', $this->URL) ){ //if exist Parameters
+
+					# UPDATE by ID
+					if( preg_match('/[0-9]+\Z/', $params[1]) ){ //Check Request by id
+					
+					}
+				}
+
+			} # end  if( $params[0]=="images" )
+			elseif( $this->URL==="login" ){
+					echo "LOGIN";
+
+			}else badRed();
+		} # end if(isset($_POST["action"]))
+		else Unauthorized();
+
+		badRed();
 	} # end method post()
 
 } # end class Api
 
 
-
-
-
-	// if(preg_match('/[0-' . $this->img->num_records . ']/', $this->URL)){
-
-
-/* 			foreach($arr as $key => $value){
-				echo $key . '  =>  ' . $value;
-				$arr[$key] = utf8_encode($value);
-			} */
  ?>
 
 
