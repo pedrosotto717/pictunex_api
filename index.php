@@ -43,20 +43,11 @@
 
 
       case 'POST':
-        var_dump("Metodo POST");
         $routesApi->post();
       break;
 
-      case 'PUT':
-        var_dump("Metodo PUT");
-        echo "Create";
-            var_dump($_FILES["src"]);
-            echo "<br>";
-            var_dump($_GET["img"]);
-      break;
-
       case 'DELETE':
-        var_dump("Metodo DELETE");
+        $routesApi->delete();
       break;
 
       default:

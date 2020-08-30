@@ -141,7 +141,9 @@ class Images {
                               ":keywords" => $keyW,
                               ":categories" => $category,
                               ":src" => $srcFinal])){
-                return true;
+                if($_result->rowCount()==1)
+                    return true;
+                else return false;
             } # end if DB->execute()
             else return false;
 
@@ -154,12 +156,10 @@ class Images {
     public function UpdateImage($id,$datImage) {
 
         $_query = "UPDATE images 
-                  SET ID = NULL,
-                      NAME = :name,
+                  SET NAME = :name,
                       KEYWORDS = :keywords,
                       CATEGORIES = :categories,
-                      SRC = :src,
-                      CREATION_DATE = NOW()";
+                      SRC = :src WHERE ID = $id";
     }
 
 
@@ -179,13 +179,25 @@ class Images {
     }
 
 
+    public function deleteImage($id){
+        escSpecialChar($id);
+        $_query = "DELETE FROM `images` WHERE ID = $id"; 
+
+        $_result = $this->connect->getDB()->prepare($_query);
+
+        $e = $_result->execute();
+        if($e && $_result->rowCount()==1){
+            return true;
+        } # end if DB->execute()
+        else return false;
+
+    }
+
+
     public function constructUrl(&$urlImages)  {
         $urlImages = protocol . "://" . http_host . $urlImages;
     }
 
-
-
-    // $_SERVER["HTTP_REFERER"]
 
 }#end Class Images
 

@@ -1,7 +1,7 @@
 <?php 
 
 function notFound() {
-	echo json_encode(['code' => 404, 'msg' => 'Resource Not Found']);
+	echo json_encode(['code' => 404, 'msg' => 'Not Found']);
 	http_response_code(404);
 	die();
 }
@@ -13,8 +13,14 @@ function Unauthorized() {
 	die();
 }
 
+function methodNotAllowed() {
+	echo json_encode(['code' => 405, 'msg' => 'Method Not Allowed']);
+	http_response_code(405);
+	die();
+}
 
-function badRed() {
+
+function badReq() {
 	echo json_encode(['code' => 400, 'msg' => 'Bad Request']);
 	http_response_code(400);
 	die();
@@ -35,7 +41,7 @@ function created() {
 }
 
 function ok() {
-	echo json_encode(['code' => 201, 'msg' => 'Internal Server Error']);
+	echo json_encode(['code' => 200, 'msg' => 'OK']);
 	http_response_code(200);
 	die();
 }

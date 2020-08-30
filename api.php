@@ -89,7 +89,7 @@ class Api {
 		else{
 			notFound();
 		}
-	}# end method get()
+	} # end method get()
 
 
 
@@ -127,7 +127,7 @@ class Api {
 									errorServer();
 								}else
 								created();
-						}else badRed();
+						}else badReq();
 
 					} # end if($_POST["action"]=="create")
 					else Unauthorized();
@@ -145,12 +145,44 @@ class Api {
 			elseif( $this->URL==="login" ){
 					echo "LOGIN";
 
-			}else badRed();
+			}else badReq();
 		} # end if(isset($_POST["action"]))
 		else Unauthorized();
 
-		badRed();
+		badReq();
 	} # end method post()
+
+
+	public function delete() {
+		##Leyends 
+			#$params[0] -> images
+			#$params[1] -> id
+
+		//Check URL parameters 
+		$params = preg_split('/[\/]/', $this->URL); //separate URL parameters
+		
+		if(isset($_GET["action"])){
+			if( $params[0]=="images" ){
+				if($_GET["action"]=='delete'){
+					if( isset($params[1]) ){
+						if( preg_match('/[0-9]+\Z/', $params[1]) ){
+							if (true){ //validate User
+								$finalResult = $this->imgs->deleteImage($params[1]);
+
+								if($finalResult == false){
+									notFound();
+								}else ok();
+							}else{
+								Unauthorized();
+							}
+						}
+					}
+				} 
+				badReq();
+			}
+		} # end if isset($_GET["action"])
+		methodNotAllowed();
+	} # end method delete()
 
 } # end class Api
 
