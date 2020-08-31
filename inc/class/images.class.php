@@ -62,9 +62,13 @@ class Images {
 
 
     public function getByID($id) {
+        escSpecialChar($id);
         $image = $this->connect->queryByID('images',$id);
-        self::constructUrl($image["src"]);
-        return $image;
+
+        if(isset($image["src"])){
+            self::constructUrl($image["src"]);
+            return $image;
+        }else return false;
     }
 
 
@@ -74,6 +78,7 @@ class Images {
 
 
     public function getByCategory($c) {
+        escSpecialChar($c);
 
         if(in_array($c,$this->categories["categories"])){
             $_result = $this->connect->getDB()->prepare("SELECT * FROM `images` WHERE categories LIKE '%$c%'");
@@ -127,11 +132,48 @@ class Images {
         escSpecialChar($keyW);
         escSpecialChar($category);
 
+        var_dump( $imgObject);
+
         $srcFinal = self::saveImage($imgObject,$name);
 
         $_query = "INSERT INTO `images`
                 (`id`, `name`, `keywords`, `categories`, `src`, `CREATION_DATE`) 
                 VALUES (NULL, :name, :keywords, :categories, :src, NOW())";
+
+        $_result = $this->connect->getDB()->prepare($_query);
+
+        if($srcFinal!=false){
+            echo " hasta depues de cargar la imagen";
+            if($_result->execute([":name" => $name,
+                              ":keywords" => $keyW,
+                              ":categories" => $category,
+                              ":src" => $srcFinal])){
+                if($_result->rowCount()==1)
+                    return true;
+                else return false;
+            } # end if DB->execute()
+            else return false;
+
+        } # end $srcFinal
+        return null;
+        
+    }
+
+
+    public function UpdateImage($id, $name, $keyW, $category, $imgObject) {
+
+        escSpecialChar($name);
+        escSpecialChar($keyW);
+        escSpecialChar($category);
+
+        $srcFinal = self::saveImage($imgObject,$name);
+
+        $_query = "UPDATE images 
+                  SET NAME = :name,
+                      KEYWORDS = :keywords,
+                      CATEGORIES = :categories,
+                      SRC = :src 
+                      WHERE ID = $id";
 
         $_result = $this->connect->getDB()->prepare($_query);
 
@@ -149,17 +191,6 @@ class Images {
 
         } # end $srcFinal
         return null;
-        
-    }
-
-
-    public function UpdateImage($id,$datImage) {
-
-        $_query = "UPDATE images 
-                  SET NAME = :name,
-                      KEYWORDS = :keywords,
-                      CATEGORIES = :categories,
-                      SRC = :src WHERE ID = $id";
     }
 
 
@@ -169,8 +200,13 @@ class Images {
         $srcFinal = $this->pathIMG . $name;
 
         //Check File Type == Image
-        if($imgObj["type"]=="image/jpg" || $imgObj["type"]=="image/jpeg" || $imgObj["type"]=="image/png" ){
+        if($imgObj["type"]=="image/jpg" 
+            || $imgObj["type"]=="image/jpeg" 
+            || $imgObj["type"]=="image/png" 
+            || preg_match("/jpg/", $imgObj["name"])==1
+            || preg_match("/png/", $imgObj["name"])==1){
 
+            echo "Todo bien hata la validacion de tipo de archivo";
             if(move_uploaded_file($imgObj["tmp_name"], $srcFinal))
                 return $this->urlPublicImg . $name;
             return false;
@@ -179,18 +215,40 @@ class Images {
     }
 
 
+    public function destroyImages($URL) {
+        $name = preg_replace("/(Pictunex)+\/+(server)+\/+(public)+\/+(img)+\//", "", $URL);
+        
+        $srcFinal = $this->pathIMG . $name;
+
+        if(file_exists($srcFinal)) {
+
+            if(unlink($srcFinal)==1){
+                return true;
+            }else return false;
+
+        }else return false;
+    }
+
+
     public function deleteImage($id){
         escSpecialChar($id);
-        $_query = "DELETE FROM `images` WHERE ID = $id"; 
+        $_img = $this->connect->queryByID('images',$id);
+        if($_img!=false){
 
-        $_result = $this->connect->getDB()->prepare($_query);
+            $_query = "DELETE FROM `images` WHERE ID = $id"; 
 
-        $e = $_result->execute();
-        if($e && $_result->rowCount()==1){
-            return true;
-        } # end if DB->execute()
-        else return false;
+            $_result = $this->connect->getDB()->prepare($_query);
 
+            $e = $_result->execute();
+
+            if($e && $_result->rowCount()==1){
+                if(self::destroyImages($_img["src"]))
+                    return true;
+                else return false;
+            } # end if DB->execute()
+            else return false;
+
+        }
     }
 
 

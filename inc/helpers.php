@@ -49,6 +49,7 @@ function ok() {
 
 function escSpecialChar(&$key) {
     $key = strtolower($key);
+    $key = htmlentities($key);
     $key = preg_replace('/[.*+\-?^${}()|\\\[\]\/]/', ' ', $key); //escape charartes specials
 }
 

@@ -110,6 +110,8 @@ class Api {
 					#codigo para insertar una imagen
 					if($_POST["action"]=="create"){
 						#INSERT INTO 
+						var_dump($_FILES["src"]);
+						echo "==================================================================";
 						if(	isset($_FILES["src"] ) 
 							&& isset($_POST["name"])
 							&& isset($_POST["keywords"])
@@ -120,6 +122,8 @@ class Api {
 								    $_POST["keywords"],
 								    $_POST["categories"],
 								    $_FILES["src"]);
+
+							echo "TODO BIEN EN API";
 								
 								if($finalResult == false){
 									notFound(); //error
@@ -161,26 +165,24 @@ class Api {
 		//Check URL parameters 
 		$params = preg_split('/[\/]/', $this->URL); //separate URL parameters
 		
-		if(isset($_GET["action"])){
-			if( $params[0]=="images" ){
-				if($_GET["action"]=='delete'){
-					if( isset($params[1]) ){
-						if( preg_match('/[0-9]+\Z/', $params[1]) ){
-							if (true){ //validate User
-								$finalResult = $this->imgs->deleteImage($params[1]);
+		if( $params[0]=="images" ){
+			if($params[1]='delete'){
+				if( isset($params[2]) ){
+					if( preg_match('/[0-9]+\Z/', $params[2]) ){
+						if (true){ //validate User
+							$finalResult = $this->imgs->deleteImage($params[2]);
 
-								if($finalResult == false){
-									notFound();
-								}else ok();
-							}else{
-								Unauthorized();
-							}
+							if($finalResult == false){
+								notFound();
+							}else ok();
+						}else{
+							Unauthorized();
 						}
 					}
-				} 
-				badReq();
-			}
-		} # end if isset($_GET["action"])
+				}
+			} 
+			badReq();
+		}
 		methodNotAllowed();
 	} # end method delete()
 

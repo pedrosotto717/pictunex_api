@@ -13,6 +13,7 @@
   //   echo "<br> $key :   " . $value;
   // };
 
+
   // get request method 
   $reqMethod = $_SERVER["REQUEST_METHOD"];
 
