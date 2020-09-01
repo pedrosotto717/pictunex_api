@@ -44,7 +44,7 @@ class Images {
             "arquitectura",
             "industria "]];
         
-    }
+    } 
 
 
     public function getAll() {
@@ -58,27 +58,27 @@ class Images {
             return $arrImages;
         }else return false;
 
-    }
+    } # end getAll()
 
 
     public function getByID($id) {
-        escSpecialChar($id);
+        $id = escSpecialChar($id);
         $image = $this->connect->queryByID('images',$id);
 
         if(isset($image["src"])){
             self::constructUrl($image["src"]);
             return $image;
         }else return false;
-    }
+    } # end getByID()
 
 
     public function getCategories() {
         return $this->categories;
-    }
+    } # end getCategories()
 
 
     public function getByCategory($c) {
-        escSpecialChar($c);
+        $c = escSpecialChar($c);
 
         if(in_array($c,$this->categories["categories"])){
             $_result = $this->connect->getDB()->prepare("SELECT * FROM `images` WHERE categories LIKE '%$c%'");
@@ -96,11 +96,11 @@ class Images {
 
             }else return false;
         }else return false;
-    }
+    } # end getByCategory()
 
 
     public function search($key) {
-        escSpecialChar($key);
+        $key = escSpecialChar($key);
 
         if(preg_match('/[a-z]/', $key)){
 
@@ -123,16 +123,14 @@ class Images {
             else return false;
 
         }else return false;
-    }
+    } # end search()
 
 
     public function insertImage($name, $keyW, $category, $imgObject) {
 
-        escSpecialChar($name);
-        escSpecialChar($keyW);
-        escSpecialChar($category);
-
-        var_dump( $imgObject);
+        $name = escSpecialChar($name);
+        $keyW = escSpecialChar($keyW);
+        $category = escSpecialChar($category);
 
         $srcFinal = self::saveImage($imgObject,$name);
 
@@ -143,7 +141,6 @@ class Images {
         $_result = $this->connect->getDB()->prepare($_query);
 
         if($srcFinal!=false){
-            echo " hasta depues de cargar la imagen";
             if($_result->execute([":name" => $name,
                               ":keywords" => $keyW,
                               ":categories" => $category,
@@ -157,82 +154,57 @@ class Images {
         } # end $srcFinal
         return null;
         
-    }
+    } # end insertImage()
 
 
-    public function UpdateImage($id, $name, $keyW, $category, $imgObject) {
+    public function updateImage($id, $name, $keyW, $category, $imgObject) {
+        $name = escSpecialChar($name);
+        $keyW = escSpecialChar($keyW);
+        $category = escSpecialChar($category);
 
-        escSpecialChar($name);
-        escSpecialChar($keyW);
-        escSpecialChar($category);
+        $id = escSpecialChar($id);
 
-        $srcFinal = self::saveImage($imgObject,$name);
+        $_img = $this->connect->queryByID('images',$id);
 
-        $_query = "UPDATE images 
-                  SET NAME = :name,
-                      KEYWORDS = :keywords,
-                      CATEGORIES = :categories,
-                      SRC = :src 
-                      WHERE ID = $id";
+        if($_img!=false){ # if exist 
 
-        $_result = $this->connect->getDB()->prepare($_query);
+            if(self::destroyImages($_img["src"])){
+                $srcFinal = self::saveImage($imgObject,$name);
 
-        if($srcFinal!=false){
+                $_query = "UPDATE images 
+                          SET NAME = :name,
+                              KEYWORDS = :keywords,
+                              CATEGORIES = :categories,
+                              SRC = :src 
+                              WHERE ID = $id";
 
-            if($_result->execute([":name" => $name,
-                              ":keywords" => $keyW,
-                              ":categories" => $category,
-                              ":src" => $srcFinal])){
-                if($_result->rowCount()==1)
-                    return true;
-                else return false;
-            } # end if DB->execute()
+                $_result = $this->connect->getDB()->prepare($_query);
+
+                if($srcFinal!=false){
+                    if($_result->execute([":name" => $name,
+                                      ":keywords" => $keyW,
+                                      ":categories" => $category,
+                                      ":src" => $srcFinal])){
+                        if($_result->rowCount()==1)
+                            return true;
+                        else return false;
+                    } # end if DB->execute()
+                    else return false;
+
+                } # end $srcFinal
+                return null;
+            }
             else return false;
-
-        } # end $srcFinal
-        return null;
-    }
-
-
-    public function saveImage($imgObj, $name) {
-        $name = preg_replace("/[\s]/", "_", $name);
-        $name = $name . "_" . time() . "-pictunex" . "." . preg_replace("/(image)+\//", "", $imgObj["type"]);
-        $srcFinal = $this->pathIMG . $name;
-
-        //Check File Type == Image
-        if($imgObj["type"]=="image/jpg" 
-            || $imgObj["type"]=="image/jpeg" 
-            || $imgObj["type"]=="image/png" 
-            || preg_match("/jpg/", $imgObj["name"])==1
-            || preg_match("/png/", $imgObj["name"])==1){
-
-            echo "Todo bien hata la validacion de tipo de archivo";
-            if(move_uploaded_file($imgObj["tmp_name"], $srcFinal))
-                return $this->urlPublicImg . $name;
-            return false;
-        }else return false;
-    
-    }
-
-
-    public function destroyImages($URL) {
-        $name = preg_replace("/(Pictunex)+\/+(server)+\/+(public)+\/+(img)+\//", "", $URL);
-        
-        $srcFinal = $this->pathIMG . $name;
-
-        if(file_exists($srcFinal)) {
-
-            if(unlink($srcFinal)==1){
-                return true;
-            }else return false;
-
-        }else return false;
-    }
+        }else return false;        
+    } # end updateImage()
 
 
     public function deleteImage($id){
-        escSpecialChar($id);
+
+        $id = escSpecialChar($id);
+
         $_img = $this->connect->queryByID('images',$id);
+
         if($_img!=false){
 
             $_query = "DELETE FROM `images` WHERE ID = $id"; 
@@ -249,13 +221,54 @@ class Images {
             else return false;
 
         }
-    }
+    } # end deleteImage()
 
 
     public function constructUrl(&$urlImages)  {
         $urlImages = protocol . "://" . http_host . $urlImages;
     }
 
+    public function saveImage($imgObj = "", $name = "") {
+        if(!empty($imgObj) && !empty($name)) {
+            
+            $extention = preg_replace("/(image)+\//", "", $imgObj["type"]);
+            $extention = $extention == "jpeg" ? "jpg" : $extention;
+
+            $name = preg_replace("/[\s]/", "_", $name);
+            $name = preg_replace("/(ñ)/", "n", $name);
+            $name = $name . "_" . time() . "_pictunex" . "." . $extention;
+
+            $srcFinal = $this->pathIMG . $name;
+
+            //Check File Type == Image
+            if($imgObj["type"]=="image/jpg" 
+            || $imgObj["type"]=="image/jpeg" 
+            || $imgObj["type"]=="image/png" 
+            || preg_match("/jpg\Z/", $imgObj["name"])==1
+            || preg_match("/png\Z/", $imgObj["name"])==1){
+
+                if(move_uploaded_file($imgObj["tmp_name"], $srcFinal))
+                    return $this->urlPublicImg . $name;
+                return false;
+            }else return false;
+        
+        }
+    } #end saveImage()
+
+
+    public function destroyImages($URL) {
+        $name = preg_replace("/(server)+\/+(public)+\/+(img)+\//", "", $URL);
+        
+        $srcFinal = $this->pathIMG . $name;
+
+        if(file_exists($srcFinal)) {
+            if(unlink($srcFinal)==1){
+                return true;
+            }else return false;
+
+        }else return false;
+    } # end destroyImages()
+    
 
 }#end Class Images
 

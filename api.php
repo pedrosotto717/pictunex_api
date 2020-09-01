@@ -96,22 +96,19 @@ class Api {
 	public function post() {
 		##Leyends 
 			#$params[0] -> images
-			#$params[1] -> id
+			#$params[1] -> delete
+			#$params[2] -> id
+
 
 		//Check URL parameters 
 		$params = preg_split('/[\/]/', $this->URL); //separate URL parameters
 		
-		if(isset($_POST["action"])){
-
+		if(isset($params[0])){
 			if( $params[0]=="images" ){
-
-				if(!isset($params[1])){ //if not defined Insert new Image
-
-					#codigo para insertar una imagen
-					if($_POST["action"]=="create"){
+			
+				if(isset($_POST["action"])){
+					if($_POST["action"]=="create" && !isset($params[1])){
 						#INSERT INTO 
-						var_dump($_FILES["src"]);
-						echo "==================================================================";
 						if(	isset($_FILES["src"] ) 
 							&& isset($_POST["name"])
 							&& isset($_POST["keywords"])
@@ -119,40 +116,53 @@ class Api {
 								
 								$finalResult = $this->imgs->insertImage(
 									$_POST["name"],
-								    $_POST["keywords"],
-								    $_POST["categories"],
-								    $_FILES["src"]);
+									$_POST["keywords"],
+									$_POST["categories"],
+									$_FILES["src"]);
 
-							echo "TODO BIEN EN API";
-								
 								if($finalResult == false){
 									notFound(); //error
 								}elseif ($finalResult == null) {
 									errorServer();
-								}else
-								created();
+								}else created();
 						}else badReq();
+					} # end if($_POST["action"]=="create" && !isset($params[1]))
+				} # end if set $_POST["action"]
+				elseif (isset($params[1]) && isset($params[2])) {
+					if ($params[1]=="update") {
+						if(preg_match('/[0-9]+\Z/', $params[2])) {//Check Request by id
+							#UPDATE
+							if(	isset($_FILES["src"]) 
+								&& isset($_POST["name"])
+								&& isset($_POST["keywords"])
+								&& isset($_POST["categories"]) ){
+															
+								$finalResult = $this->imgs->updateImage(
+									$params[2],
+									$_POST["name"],
+									$_POST["keywords"],
+									$_POST["categories"],
+									$_FILES["src"]);
 
-					} # end if($_POST["action"]=="create")
-					else Unauthorized();
+								if($finalResult == false){
+									notFound(); //error
+								}elseif ($finalResult == null) {
+									errorServer();
+								}else ok();
 
-				} # end if(!isset($params[1]))
-				elseif( preg_match('/[\/]/', $this->URL) ){ //if exist Parameters
-
-					# UPDATE by ID
-					if( preg_match('/[0-9]+\Z/', $params[1]) ){ //Check Request by id
-					
-					}
+							}else badReq();
+						}else badReq();
+					} # end if $params[1]=="update"
 				}
+
 
 			} # end  if( $params[0]=="images" )
 			elseif( $this->URL==="login" ){
 					echo "LOGIN";
 
 			}else badReq();
-		} # end if(isset($_POST["action"]))
-		else Unauthorized();
-
+			badReq();
+		}
 		badReq();
 	} # end method post()
 

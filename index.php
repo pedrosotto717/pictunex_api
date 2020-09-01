@@ -9,10 +9,6 @@
   require_once "inc/helpers.php";
   require_once "api.php";
 
-  // foreach ($_SERVER as $key => $value) {
-  //   echo "<br> $key :   " . $value;
-  // };
-
 
   // get request method 
   $reqMethod = $_SERVER["REQUEST_METHOD"];
@@ -58,9 +54,6 @@
     } # end switch
 
   } # end if($URL != "index.php")
-  elseif($URL == "public" || preg_match("/(public\S)+(img+[0-9])|(public\Z)|(img)/", $URL)==1)
-    // echo "<img src='./public/img/1.jpg'>";
-    header("Location: public/img/1.jpg");
   else
   echo "SOLO AL INDEX -> HTML_DOC";
 

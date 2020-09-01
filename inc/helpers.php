@@ -47,10 +47,9 @@ function ok() {
 }
 
 
-function escSpecialChar(&$key) {
-    $key = strtolower($key);
-    $key = htmlentities($key);
-    $key = preg_replace('/[.*+\-?^${}()|\\\[\]\/]/', ' ', $key); //escape charartes specials
+function escSpecialChar($key) {
+	$key = htmlspecialchars( preg_replace('/[\*|\?^${}()|\\\[\]\/]/', '', $key) );
+	return preg_replace('/([&]\S+;)|(¿)|(\?)|(\')|(=)|(!)|(¡)/', "", $key);
 }
 
 
