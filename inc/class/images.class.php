@@ -7,7 +7,7 @@ require_once "connection.class.php";
 require_once $dirHelpers;
 
 /**
- * Class Images
+ * Class Images MODEL
  */
 class Images {
     public $num_images_in_storage;
@@ -17,6 +17,7 @@ class Images {
     private $categories;
 
     function Images($httpReferer) {
+
         //Connection with DataBase using Class "Connection"
         $this->connect = new Connection('pictunex');
 
@@ -34,21 +35,24 @@ class Images {
 
         //Categories
         $this->categories =  ["categories" => [
-            "animales",
-            "paisajes",
-            "naturaleza",
-            "fantasia",
-            "tecnologia",
-            "ciencia",
-            "moda",
-            "arquitectura",
-            "industria "]];
+            "animals",
+            "scenery",
+            "nature",
+            "fantasy",
+            "technology",
+            "science",
+            "fashion",
+            "architecture",
+            "industry "]];
         
     } 
 
 
-    public function getAll() {
-        $arrImages = $this->connect->queryAll('images');
+    public function getAll($username = false) {
+        if($username!=false)
+            $arrImages = $this->connect->queryAll('images',$username);
+        else
+            $arrImages = $this->connect->queryAll('images');
 
         if ($arrImages!=false) {
             for ($h=0; $h < count($arrImages); $h++){
@@ -77,34 +81,62 @@ class Images {
     } # end getCategories()
 
 
-    public function getByCategory($c) {
+    public function getByCategory($c, $username = null) {
         $c = escSpecialChar($c);
 
         if(in_array($c,$this->categories["categories"])){
-            $_result = $this->connect->getDB()->prepare("SELECT * FROM `images` WHERE categories LIKE '%$c%'");
-            if($_result->execute()){
 
-                $arrImages = $_result->fetchAll(PDO::FETCH_ASSOC);
+            $_result = null;
 
-                if ($arrImages!=false) {
-                    for ($h=0; $h < count($arrImages); $h++){
-                        self::constructUrl($arrImages[$h]["src"]);
-                    }
+            if($username !== null){
+                
+                $_result = $this->connect->getDB()->prepare("SELECT * FROM `images` WHERE `nickname`='$username'
+                     AND categories LIKE '%$c%' GROUP BY name ORDER BY CREATION_DATE DESC");
+            }else{
 
-                    return $arrImages;
-                }else return false;
+                $_result = $this->connect->getDB()->prepare("SELECT * FROM `images` WHERE categories LIKE '%$c%' GROUP BY name ORDER BY CREATION_DATE DESC");
+            }
 
-            }else return false;
+            try {
+                if($_result->execute()){
+
+                    $arrImages = $_result->fetchAll(PDO::FETCH_ASSOC);
+
+                    if ($arrImages!=false) {
+                        for ($h=0; $h < count($arrImages); $h++){
+                            self::constructUrl($arrImages[$h]["src"]);
+                        }
+
+                        return $arrImages;
+                    }else return false;
+
+                }else return false; 
+            } catch (Exception $e) {
+                echo json_encode($e);
+            }
+
         }else return false;
     } # end getByCategory()
 
 
-    public function search($key) {
+    public function search($key, $username = false) {
         $key = escSpecialChar($key);
 
         if(preg_match('/[a-z]/', $key)){
 
-            $_query = "SELECT * FROM `images` WHERE MATCH(`name`,`keywords`,`categories`) AGAINST('$key' IN BOOLEAN MODE)";
+            if($username != false){
+                // $username = "pedrosotto717";
+                $username = escSpecialChar($username);
+            
+                $_query = "SELECT * FROM `images` WHERE
+                            `nickname` = '$username' AND(
+                                MATCH(`name`, `keywords`, `categories`) AGAINST('$key' IN BOOLEAN MODE) OR keywords LIKE '%$key%' OR NAME LIKE '%$key%'
+                            )GROUP BY NAME ORDER BY CREATION_DATE DESC";
+            }else{
+
+                $_query = "SELECT * FROM `images` WHERE MATCH(`name`,`keywords`,`categories`) AGAINST('$key' IN BOOLEAN MODE) OR keywords LIKE '%$key%' OR name LIKE '%$key%' GROUP BY name ORDER BY CREATION_DATE DESC";
+            }
+
 
             $_result = $this->connect->getDB()->prepare($_query);
 
@@ -126,7 +158,7 @@ class Images {
     } # end search()
 
 
-    public function insertImage($name, $keyW, $category, $imgObject) {
+    public function insertImage($name, $keyW, $category, $imgObject, $userName) {
 
         $name = escSpecialChar($name);
         $keyW = escSpecialChar($keyW);
@@ -135,8 +167,9 @@ class Images {
         $srcFinal = self::saveImage($imgObject,$name);
 
         $_query = "INSERT INTO `images`
-                (`id`, `name`, `keywords`, `categories`, `src`, `CREATION_DATE`) 
-                VALUES (NULL, :name, :keywords, :categories, :src, NOW())";
+                (`id`, `name`, `keywords`, `categories`, `nickname`, `src`) 
+                VALUES (NULL, :name, :keywords, :categories,
+                :nickname, :src)";
 
         $_result = $this->connect->getDB()->prepare($_query);
 
@@ -144,6 +177,7 @@ class Images {
             if($_result->execute([":name" => $name,
                               ":keywords" => $keyW,
                               ":categories" => $category,
+                              ":nickname" => $userName,
                               ":src" => $srcFinal])){
                 if($_result->rowCount()==1)
                     return true;
@@ -157,7 +191,7 @@ class Images {
     } # end insertImage()
 
 
-    public function updateImage($id, $name, $keyW, $category, $imgObject) {
+    public function updateImage($id, $name, $keyW, $category, $imgObject, $userName) {
         $name = escSpecialChar($name);
         $keyW = escSpecialChar($keyW);
         $category = escSpecialChar($category);
@@ -166,40 +200,79 @@ class Images {
 
         $_img = $this->connect->queryByID('images',$id);
 
+        try {
+            
         if($_img!=false){ # if exist 
+           
+            if($imgObject===NULL){
+             
+                if(true){
+                    $_query = "UPDATE images 
+                              SET NAME = :name,
+                                  KEYWORDS = :keywords,
+                                  CATEGORIES = :categories
+                                  WHERE ID = :IDX AND nickname = :UN";
 
-            if(self::destroyImages($_img["src"])){
-                $srcFinal = self::saveImage($imgObject,$name);
+                    $_result = $this->connect->getDB()->prepare($_query);
 
-                $_query = "UPDATE images 
-                          SET NAME = :name,
-                              KEYWORDS = :keywords,
-                              CATEGORIES = :categories,
-                              SRC = :src 
-                              WHERE ID = $id";
+                    if($_result->execute([
+                                        ":name" => $name,
+                                        ":keywords" => $keyW,
+                                        ":categories" => $category,
+                                        ":IDX" => $id,
+                                        ":UN" => $userName
+                                        ])){
 
-                $_result = $this->connect->getDB()->prepare($_query);
-
-                if($srcFinal!=false){
-                    if($_result->execute([":name" => $name,
-                                      ":keywords" => $keyW,
-                                      ":categories" => $category,
-                                      ":src" => $srcFinal])){
                         if($_result->rowCount()==1)
                             return true;
                         else return false;
                     } # end if DB->execute()
                     else return false;
+                }
+                else return false;
 
-                } # end $srcFinal
-                return null;
+            }else if($imgObject !== NULL){
+                if(self::destroyImages($_img["src"])){
+                    $srcFinal = self::saveImage($imgObject,$name);
+
+                    $_query = "UPDATE images 
+                                SET NAME = :name,
+                                    KEYWORDS = :keywords,
+                                    CATEGORIES = :categories,
+                                    SRC = :src 
+                                    WHERE ID = :IDX AND nickname = :UN";
+
+                    $_result = $this->connect->getDB()->prepare($_query);
+
+                    if($srcFinal!=false){
+                        if($_result->execute([
+                                            ":name" => $name,
+                                            ":keywords" => $keyW,
+                                            ":categories" => $category,
+                                            ":src" => $srcFinal,
+                                            ":IDX" => $id,
+                                            ":UN" => $userName
+                                            ])){
+                            if($_result->rowCount()==1)
+                                return true;
+                            else return false;
+                        } # end if DB->execute()
+                        else return false;
+
+                    } # end $srcFinal
+                    return null;
+                }
+                else return false;
             }
-            else return false;
-        }else return false;        
+        }else return false;      
+        } catch (Exception $e) {
+            var_dump($e);
+        }
+
     } # end updateImage()
 
 
-    public function deleteImage($id){
+    public function deleteImage($id,$userName){
 
         $id = escSpecialChar($id);
 
@@ -207,11 +280,12 @@ class Images {
 
         if($_img!=false){
 
-            $_query = "DELETE FROM `images` WHERE ID = $id"; 
+            $_query = "DELETE FROM `images` WHERE ID = :IDX AND nickname = :username"; 
 
             $_result = $this->connect->getDB()->prepare($_query);
 
-            $e = $_result->execute();
+            $e = $_result->execute([":IDX"=>$id,
+                                    ":username" => $userName]);
 
             if($e && $_result->rowCount()==1){
                 if(self::destroyImages($_img["src"]))
