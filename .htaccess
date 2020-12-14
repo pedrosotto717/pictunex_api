@@ -1,5 +1,10 @@
 RewriteEngine On
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-l
-RewriteRule ^(.*)$ index.php?url=$1 [L,QSA]
+
+# Si la Ruta no es un archivo existente, ni una Carpeta
+# Reescribe al index
+
+
+RewriteCond %[REQUEST_FILENAME] !-f
+RewriteCond %[REQUEST_FILENAME] !-d
+
+RewriteRule ^(.+?)/?$ index.php?url=$1 [L,QSA]
