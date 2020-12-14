@@ -26,6 +26,12 @@
 
   $routesApi = new Api($URL,$reqMethod);
 
+  // var_dump($routesApi);
+  // echo "
+  
+  //     ";
+  // var_dump($URL);
+
   //Check URL Format
   if($URL != "index.php" && preg_match("/(public\S)+(img+[0-9])|(public\Z)|(img)/", $URL)==0){
 
@@ -54,7 +60,7 @@
       break;
 
       case 'OPTIONS':
-        http_response_code(100);
+        http_response_code(200);
         break;
 
       default:
@@ -127,6 +133,11 @@
 
       </li>
     </ul>
+    <br>
+    <br>
+    <br>
+    <a href='/' title='/'>TEST</a>
+    
     ";
 
   }
